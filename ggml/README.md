@@ -6,13 +6,12 @@
 The project is still active in development. Contributions are welcome!
 
 ## Build
-To build the interactive console for S2TT & ASR, 
+To build the interactive console for S2TT & ASR & T2TT, 
 ```
 
 cd seamless_communication/ggml
 mkdir build; cd build
-cmake \
-    -DGGML_OPENBLAS=ON \
+cmake -DGGML_OPENBLAS=ON \
     -DBUILD_SHARED_LIBS=On \
 	  -DCMAKE_BUILD_TYPE=Release \
 	  -DCMAKE_CXX_FLAGS="-g2 -fno-omit-frame-pointer" \
@@ -20,21 +19,32 @@ cmake \
 make -j4 unity # Interactive Console
 
 ```
-Note that `-DGGML_OPENBLAS=ON` is not necessary on macOS.
-
 For more build commands see [Makefile](Makefile). 
 
 ## CLI usage
+### S2TT
 Command to launch an interactive console for S2TT & ASR, note that the model already includes vocabulary needed to detokenize. 
 ```
 OPENBLAS_NUM_THREADS=8 ./bin/unity --model seamlessM4T_medium.ggml
 ```
-In the console, enter the path of local waveform file and target language, separated by space. Note that the first run would include some “warm up” time so could be slow. 
+In the console, enter "wav_file tgt_lang" - the path of local waveform file and target language, separated by space. Note that the first run would include some “warm up” time so could be slow. 
+
+### T2TT
+Launching command:
+```
+OPENBLAS_NUM_THREADS=8 ./bin/unity --model nllb-200_dense_1b.ggml --text
+```
+In the console, enter "input_text tgt_lang" - input text and target langauge, separated by space. Note that the language code should align with [NLLB BCP-47 code](https://github.com/facebookresearch/flores/blob/main/flores200/README.md#languages-in-flores-200), NOT 3-letter language code as S2TT task with Seamless. Unifying this is on todo list. 
+
+
+### Model downloads 
 
 Converted ggml models could be downloaded from 
-|SeamlessM4T_large | SeamlessM4T_medium | 
-|-------- | -------- | 
-| [model](https://dl.fbaipublicfiles.com/seamless/models/seamlessM4T_large.ggml) | [model](https://dl.fbaipublicfiles.com/seamless/models/seamlessM4T_medium.ggml) |  
+|SeamlessM4T_large | SeamlessM4T_medium | NLLB_dense_1b | NLLB_distill_600m |
+|-------- | -------- | ------- | ------- |
+| [model](dl.fbaipublicfiles.com/seamless/models/seamlessM4T_large.ggml) | [model](dl.fbaipublicfiles.com/seamless/models/seamlessM4T_medium.ggml) |  [model](dl.fbaipublicfiles.com/seamless/models/nllb-200_dense_1b.ggml) | [model](dl.fbaipublicfiles.com/seamless/models/nllb-200_dense_distill_600m.ggml)
+
+For more details of NLLB models, please check https://github.com/facebookresearch/fairseq/tree/nllb.
 
 ## Fairseq2 model conversion 
 Models from fairseq2 checkpoints could be converted to ggml automatically with [ggml_convert.py](ggml_convert.py). 

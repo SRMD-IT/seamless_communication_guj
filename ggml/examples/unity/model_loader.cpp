@@ -1,5 +1,5 @@
-#include <string>
 #include "model_loader.h"
+#include <string>
 
 #define DEBUG_MODEL_LOAD 0
 
@@ -47,7 +47,7 @@ model_loader::load_model_weights(fairseq2_model &model, std::ifstream &fin)
     // Note this require changing the on disk format
     bool as_float32 = true;
     struct ggml_init_params params = {
-        /*.mem_size   =*/ f32_tensor_size + num_tensor * (int64_t)ggml_tensor_overhead(),
+        /*.mem_size   =*/ static_cast<size_t>(f32_tensor_size + (num_tensor + 1) * (int64_t)ggml_tensor_overhead()),
         /*.mem_buffer =*/ NULL,
         /*.no_alloc   =*/ false,
     };
@@ -133,7 +133,10 @@ void model_loader::load_vocab(llama_vocab& vocab, std::ifstream &fin)
 
     std::int64_t vocab_size = 0;
     fin.read(reinterpret_cast<char*>(&vocab_size), sizeof(vocab_size));
-    GGML_ASSERT(fin.gcount() == 8);
+    // GGML_ASSERT(fin.gcount() == 8);
+    if (vocab_size == 0) {
+        return;
+    }
 
     vocab.token_to_id.reserve(vocab_size);
     vocab.id_to_token.reserve(vocab_size);
@@ -141,7 +144,7 @@ void model_loader::load_vocab(llama_vocab& vocab, std::ifstream &fin)
     std::string packed_vocab = get_name(fin);
     std::int64_t ctx_size = vocab_size * sizeof(float) + vocab_size + 2 * ggml_tensor_overhead();
     ctx_size *= 2;
-    ggml_context* ctx = ggml_init(ggml_init_params{ctx_size, nullptr, false});
+    ggml_context* ctx = ggml_init(ggml_init_params{static_cast<size_t>(ctx_size), nullptr, false});
     ggml_tensor* lengths_tensor = load_tensor_value(fin, ctx, true);
     std::int8_t* lengths = (std::int8_t*)lengths_tensor->data;
     ggml_tensor* scores_tensor = load_tensor_value(fin, ctx, true);
@@ -219,5 +222,8 @@ extern "C" int load_fairseq2_ggml_file(fairseq2_model& model, const char* fname)
     loader.load_hparams(model.layer_config, fin);
     loader.load_vocab(model.vocab, fin);
     loader.load_model_weights(model, fin);
+    
+    // load optional target vocabulary in cases of bilingual models
+    loader.load_vocab(model.tgt_vocab, fin);
     return 0;
 }
